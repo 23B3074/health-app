@@ -3,7 +3,8 @@
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
 
 <title>ヘルスケアアプリ</title>
 
@@ -16,21 +17,27 @@ body{
     background:#f0f4f8;
     text-align:center;
     padding:20px;
+    margin:0;
 }
 
 .container{
     background:white;
-    width:700px;
+    width:90%;
+    max-width:700px;
     margin:auto;
     padding:25px;
     border-radius:15px;
     box-shadow:0 0 10px rgba(0,0,0,0.1);
+    box-sizing:border-box;
 }
 
 input{
-    width:80%;
+    width:95%;
     padding:10px;
     margin-top:10px;
+    box-sizing:border-box;
+    border-radius:8px;
+    border:1px solid #ccc;
 }
 
 button{
@@ -65,6 +72,7 @@ button{
     min-height:140px;
     cursor:pointer;
     transition:0.2s;
+    box-sizing:border-box;
 }
 
 .day:hover{
@@ -94,6 +102,22 @@ button{
 
 canvas{
     margin-top:30px;
+    width:100% !important;
+}
+
+@media(max-width:600px){
+
+    .week{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .day{
+        min-height:120px;
+    }
+
+    h1{
+        font-size:26px;
+    }
 }
 
 </style>
@@ -135,14 +159,14 @@ canvas{
 
         <br>
 
-        <!-- 日付選択 -->
+        <!-- 日付 -->
 
         <input type="date"
                id="dateInput">
 
         <br>
 
-        <!-- 運動入力 -->
+        <!-- 運動 -->
 
         <input type="text"
                id="exerciseInput"
@@ -154,13 +178,13 @@ canvas{
             記録する
         </button>
 
-        <!-- 1週間カレンダー -->
+        <!-- カレンダー -->
 
         <div class="week"
              id="weekView">
         </div>
 
-        <!-- 選択した日の記録 -->
+        <!-- 選択日の記録 -->
 
         <div class="selected-area">
 
@@ -255,9 +279,7 @@ function showApp(){
         .innerText =
         username + " さん";
 
-        renderWeek();
-
-        drawChart();
+        // 今日の日付自動入力
 
         const today = new Date()
         .toISOString()
@@ -266,6 +288,10 @@ function showApp(){
         document
         .getElementById("dateInput")
         .value = today;
+
+        renderWeek();
+
+        drawChart();
     }
 }
 
@@ -309,7 +335,7 @@ function addExercise(){
 }
 
 
-// 1週間カレンダー表示
+// 1週間カレンダー
 
 function renderWeek(){
 
@@ -320,12 +346,12 @@ function renderWeek(){
 
     const today = new Date();
 
-    // 左 = 古い
-    // 右 = 新しい
-
     for(let i=0; i<7; i++){
 
         const day = new Date();
+
+        // 左 = 古い
+        // 右 = 新しい
 
         day.setDate(
             today.getDate() - (6 - i)
@@ -389,7 +415,7 @@ function renderWeek(){
 }
 
 
-// 選択日の記録表示
+// 選択日の記録
 
 function showSelectedDay(){
 
@@ -481,6 +507,10 @@ function drawChart(){
 
                 data: data
             }]
+        },
+
+        options:{
+            responsive:true
         }
     });
 }
