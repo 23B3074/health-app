@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ヘルスケアアプリ</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+    font-family:sans-serif;
+    background:#f0f4f8;
+    text-align:center;
+    padding:20px;
+}
+
+.container{
+    background:white;
+    width:700px;
+    margin:auto;
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+input{
+    width:80%;
+    padding:10px;
+    margin-top:10px;
+}
+
+button{
+    margin-top:15px;
+    padding:10px 20px;
+    border:none;
+    background:#4CAF50;
+    color:white;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.logout{
+    background:#f44336;
+}
+
+.hidden{
+    display:none;
+}
+
+.week{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:10px;
+    margin-top:20px;
+}
+
+.day{
+    background:#e3f2fd;
+    padding:10px;
+    border-radius:10px;
+    min-height:140px;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.day:hover{
+    transform:scale(1.03);
+}
+
+.selected{
+    background:#90caf9;
+}
+
+.day h3{
+    margin:0;
+    font-size:14px;
+}
+
+.day ul{
+    padding-left:15px;
+    text-align:left;
+}
+
+.selected-area{
+    margin-top:30px;
+    background:#fafafa;
+    padding:20px;
+    border-radius:10px;
+}
+
+canvas{
+    margin-top:30px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>ヘルスケアアプリ</h1>
+
+    <!-- ログイン -->
+
+    <div id="loginArea">
+
+        <input type="text"
+               id="username"
+               placeholder="ユーザー名">
+
+        <br>
+
+        <button onclick="login()">
+            ログイン
+        </button>
+
+    </div>
+
+    <!-- アプリ -->
+
+    <div id="appArea" class="hidden">
+
+        <h2 id="welcome"></h2>
+
+        <button class="logout"
+                onclick="logout()">
+            ログアウト
+        </button>
+
+        <br>
+
+        <!-- 日付選択 -->
+
+        <input type="date"
+               id="dateInput">
+
+        <br>
+
+        <!-- 運動入力 -->
+
+        <input type="text"
+               id="exerciseInput"
+               placeholder="運動内容">
+
+        <br>
+
+        <button onclick="addExercise()">
+            記録する
+        </button>
+
+        <!-- 1週間カレンダー -->
+
+        <div class="week"
+             id="weekView">
+        </div>
+
+        <!-- 選択した日の記録 -->
+
+        <div class="selected-area">
+
+            <h3 id="selectedTitle">
+                日付を選択してください
+            </h3>
+
+            <ul id="selectedDayList"></ul>
+
+        </div>
+
+        <!-- グラフ -->
+
+        <canvas id="myChart"></canvas>
+
+    </div>
+
+</div>
+
+<script>
+
+let chart;
+
+let currentUser = "";
+
+let exerciseData = [];
+
+let selectedDate = "";
+
+
+// ログイン
+
+function login(){
+
+    const username =
+    document.getElementById("username").value;
+
+    if(username === ""){
+
+        alert("名前を入力してください");
+        return;
+    }
+
+    localStorage.setItem(
+        "username",
+        username
+    );
+
+    showApp();
+}
+
+
+// ログアウト
+
+function logout(){
+
+    localStorage.removeItem("username");
+
+    location.reload();
+}
+
+
+// アプリ表示
+
+function showApp(){
+
+    const username =
+    localStorage.getItem("username");
+
+    if(username){
+
+        currentUser = username;
+
+        exerciseData = JSON.parse(
+
+            localStorage.getItem(
+                "exerciseData_" + currentUser
+            )
+
+        ) || [];
+
+        document
+        .getElementById("loginArea")
+        .classList.add("hidden");
+
+        document
+        .getElementById("appArea")
+        .classList.remove("hidden");
+
+        document
+        .getElementById("welcome")
+        .innerText =
+        username + " さん";
+
+        renderWeek();
+
+        drawChart();
+
+        const today = new Date()
+        .toISOString()
+        .split("T")[0];
+
+        document
+        .getElementById("dateInput")
+        .value = today;
+    }
+}
+
+
+// 記録追加
+
+function addExercise(){
+
+    const date =
+    document.getElementById("dateInput").value;
+
+    const exercise =
+    document.getElementById("exerciseInput").value;
+
+    if(date === "" || exercise === ""){
+
+        alert("入力してください");
+        return;
+    }
+
+    exerciseData.push({
+
+        date: date,
+        exercise: exercise
+    });
+
+    localStorage.setItem(
+
+        "exerciseData_" + currentUser,
+
+        JSON.stringify(exerciseData)
+    );
+
+    document
+    .getElementById("exerciseInput")
+    .value = "";
+
+    renderWeek();
+
+    drawChart();
+}
+
+
+// 1週間カレンダー表示
+
+function renderWeek(){
+
+    const weekView =
+    document.getElementById("weekView");
+
+    weekView.innerHTML = "";
+
+    const today = new Date();
+
+    // 左 = 古い
+    // 右 = 新しい
+
+    for(let i=0; i<7; i++){
+
+        const day = new Date();
+
+        day.setDate(
+            today.getDate() - (6 - i)
+        );
+
+        const dateString =
+        day.toISOString().split("T")[0];
+
+        const dayDiv =
+        document.createElement("div");
+
+        dayDiv.className = "day";
+
+        // 選択色
+
+        if(selectedDate === dateString){
+
+            dayDiv.classList.add("selected");
+        }
+
+        // タップ
+
+        dayDiv.onclick = function(){
+
+            selectedDate = dateString;
+
+            renderWeek();
+
+            showSelectedDay();
+        };
+
+        const title =
+        document.createElement("h3");
+
+        title.textContent =
+        dateString;
+
+        dayDiv.appendChild(title);
+
+        const ul =
+        document.createElement("ul");
+
+        exerciseData.forEach(item => {
+
+            if(item.date === dateString){
+
+                const li =
+                document.createElement("li");
+
+                li.textContent =
+                item.exercise;
+
+                ul.appendChild(li);
+            }
+        });
+
+        dayDiv.appendChild(ul);
+
+        weekView.appendChild(dayDiv);
+    }
+}
+
+
+// 選択日の記録表示
+
+function showSelectedDay(){
+
+    const list =
+    document.getElementById("selectedDayList");
+
+    const title =
+    document.getElementById("selectedTitle");
+
+    list.innerHTML = "";
+
+    title.innerText =
+    selectedDate + " の記録";
+
+    let found = false;
+
+    exerciseData.forEach(item => {
+
+        if(item.date === selectedDate){
+
+            found = true;
+
+            const li =
+            document.createElement("li");
+
+            li.textContent =
+            item.exercise;
+
+            list.appendChild(li);
+        }
+    });
+
+    if(!found){
+
+        const li =
+        document.createElement("li");
+
+        li.textContent =
+        "記録なし";
+
+        list.appendChild(li);
+    }
+}
+
+
+// グラフ
+
+function drawChart(){
+
+    const countByDate = {};
+
+    exerciseData.forEach(item => {
+
+        if(countByDate[item.date]){
+
+            countByDate[item.date]++;
+
+        }else{
+
+            countByDate[item.date] = 1;
+        }
+    });
+
+    const labels =
+    Object.keys(countByDate);
+
+    const data =
+    Object.values(countByDate);
+
+    const ctx =
+    document.getElementById("myChart");
+
+    if(chart){
+
+        chart.destroy();
+    }
+
+    chart = new Chart(ctx, {
+
+        type: 'bar',
+
+        data: {
+
+            labels: labels,
+
+            datasets: [{
+
+                label: '運動回数',
+
+                data: data
+            }]
+        }
+    });
+}
+
+
+// 起動
+
+showApp();
+
+</script>
+
+</body>
+</html>
